@@ -3,6 +3,8 @@ from _math import *
 #_math is basic math functions
 
 #TO DO:
+#Change z-buffer code to work on scene level
+#Implement Frustum culling
 #Make Potential child classes of object like cube and pyramid
 #Make a game lmao
 
