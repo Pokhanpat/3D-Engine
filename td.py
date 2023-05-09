@@ -3,7 +3,6 @@ from _math import *
 #_math is basic math functions
 
 #TO DO:
-#Change z-buffer code to work on scene level
 #Implement Frustum culling
 #Make Potential child classes of object like cube and pyramid
 #Make a game lmao
@@ -116,9 +115,8 @@ class Camera:
             return ZeroDivisionError('Point projected at infinity!')    #error happens when point is projected infinitely far away
 
     def tryCulling(self, t):    #Optimization that ignores certain faces that aren't visible when rendering
-        #cToTri = t.points[0] - self.pos        #!! Code is currently Bugged, prob will fix later idk !!
-        #return (cToTri.dot(t.normal)) >= 0
-        return False
+        cToTri = t.points[0] - self.pos        
+        return (cToTri.dot(t.normal)) >= 0
 
 
     
@@ -154,39 +152,38 @@ class Object:   #object class made up of triangles
         self.centroid = sum([t.centroid for t in self.tris])/len(self.tris)
         for tri in self.tris:   #Make sure the triangle normals point outward from the shape (potentially bugged?)
             if tri.normal.dot(tri.centroid - self.centroid)<=0:
-                tri.normal *= -1
-    
-    def generateZBuffer(self, c: Camera):   #Generate z buffer of object's triangles to ensure they are rendered in
-        distanceList = [(i, c.pos.dist(t.centroid)) for i, t in enumerate(self.tris)]   #the correct order
-        sortedList = sorted(distanceList, key=lambda x: x[1], reverse=True)
-        return [self.tris[i[0]] for i in sortedList]
+                tri.normal *= -1 
 
 class Scene:    #Scene class that stores objects and can be rendered with the camera
     def __init__(self, objects=[]):
         self.objects = objects 
+        self.tris = [t for o in self.objects for t in o.tris]
 
     def generateZBuffer(self, c:Camera):    #Object-level z buffer
-        distanceList = [(i, c.pos.dist(o.centroid)) for i, o in enumerate(self.objects)]
+        distanceList = [(i, c.pos.dist(t.centroid)) for i, t in enumerate(self.tris)]
         sortedList = sorted(distanceList, key=lambda x: x[1], reverse=True)
-        return [self.objects[i[0]] for i in sortedList]
+        return [self.tris[i[0]] for i in sortedList]
     
     def render(self, sc: pygame.surface.Surface, c: Camera):    #render the object in the order of the z-buffers
-        for object in self.generateZBuffer(c):
-            for tri in object.generateZBuffer(c):
-                tri.draw(sc, c)
+          for tri in self.generateZBuffer(c):
+              tri.draw(sc, c)
+                
+class Rect(Object):  #Rectangular prism object
+  def __init__(self, pos:Vector3, width, height, depth, colors):
+    self.colors = colors
+    self.verts = [
+            Vector3(pos.x, pos.y, pos.z), Vector3(pos.x+width, pos.y, pos.z), Vector3(pos.x+width, pos.y+height, pos.z), Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y+height,pos.z), Vector3(pos.x+width,pos.y+height,pos.z),
+            Vector3(pos.x, pos.y, pos.z+depth), Vector3(pos.x+width, pos.y, pos.z+depth), Vector3(pos.x+width, pos.y+height, pos.z+depth), Vector3(pos.x,pos.y,pos.z+depth), Vector3(pos.x,pos.y+height,pos.z+depth), Vector3(pos.x+width,pos.y+height,pos.z+depth),
+            Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y+height,pos.z), Vector3(pos.x,pos.y,pos.z+depth), Vector3(pos.x,pos.y,pos.z+depth), Vector3(pos.x, pos.y+height, pos.z+depth), Vector3(pos.x,pos.y+height,pos.z),
+            Vector3(pos.x+width,pos.y,pos.z), Vector3(pos.x+width,pos.y+height,pos.z), Vector3(pos.x+width,pos.y,pos.z+depth), Vector3(pos.x+width,pos.y,pos.z+depth), Vector3(pos.x+width, pos.y+height, pos.z+depth), Vector3(pos.x+width,pos.y+height,pos.z),
+            Vector3(pos.x,pos.y,pos.z), Vector3(pos.x+width, pos.y, pos.z), Vector3(pos.x+width, pos.y, pos.z+depth), Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y,pos.z+depth), Vector3(pos.x+width,pos.y,pos.z+depth),
+            Vector3(pos.x,pos.y+height,pos.z), Vector3(pos.x+width, pos.y+height, pos.z), Vector3(pos.x+width, pos.y+height, pos.z+depth), Vector3(pos.x,pos.y+height,pos.z), Vector3(pos.x,pos.y+height,pos.z+depth), Vector3(pos.x+width,pos.y+height,pos.z+depth)]
 
+    super().__init__(self.verts, [color for color in self.colors for i in range(2)])    #make each face its own color
+   
 class Cube(Object): #Cube object (ill rewrite this later probably)
     def __init__(self, pos:Vector3, width, colors):
-        self.colors = colors
-        self.verts = [
-        Vector3(pos.x, pos.y, pos.z), Vector3(pos.x+width, pos.y, pos.z), Vector3(pos.x+width, pos.y+width, pos.z), Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y+width,pos.z), Vector3(pos.x+width,pos.y+width,pos.z),
-        Vector3(pos.x, pos.y, pos.z+width), Vector3(pos.x+width, pos.y, pos.z+width), Vector3(pos.x+width, pos.y+width, pos.z+width), Vector3(pos.x,pos.y,pos.z+width), Vector3(pos.x,pos.y+width,pos.z+width), Vector3(pos.x+width,pos.y+width,pos.z+width),
-        Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y+width,pos.z), Vector3(pos.x,pos.y,pos.z+width), Vector3(pos.x,pos.y,pos.z+width), Vector3(pos.x, pos.y+width, pos.z+width), Vector3(pos.x,pos.y+width,pos.z),
-        Vector3(pos.x+width,pos.y,pos.z), Vector3(pos.x+width,pos.y+width,pos.z), Vector3(pos.x+width,pos.y,pos.z+width), Vector3(pos.x+width,pos.y,pos.z+width), Vector3(pos.x+width, pos.y+width, pos.z+width), Vector3(pos.x+width,pos.y+width,pos.z),
-        Vector3(pos.x,pos.y,pos.z), Vector3(pos.x+width, pos.y, pos.z), Vector3(pos.x+width, pos.y, pos.z+width), Vector3(pos.x,pos.y,pos.z), Vector3(pos.x,pos.y,pos.z+width), Vector3(pos.x+width,pos.y,pos.z+width),
-        Vector3(pos.x,pos.y+width,pos.z), Vector3(pos.x+width, pos.y+width, pos.z), Vector3(pos.x+width, pos.y+width, pos.z+width), Vector3(pos.x,pos.y+width,pos.z), Vector3(pos.x,pos.y+width,pos.z+width), Vector3(pos.x+width,pos.y+width,pos.z+width)]
-
-        super().__init__(self.verts, [color for color in self.colors for i in range(2)])    #make each face its own color
+        super().__init__(pos, width, width, width, colors)
 
 class FPSCamera(Camera):    #Special camera that allows for FPS style movement and control
     def __init__(self, pos:Vector3, rot:Vector3, speed:float, rotSpeed:float):
