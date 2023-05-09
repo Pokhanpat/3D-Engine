@@ -181,7 +181,7 @@ class Rect(Object):  #Rectangular prism object
 
     super().__init__(self.verts, [color for color in self.colors for i in range(2)])    #make each face its own color
    
-class Cube(Object): #Cube object (ill rewrite this later probably)
+class Cube(Rect): #Cube object (ill rewrite this later probably)
     def __init__(self, pos:Vector3, width, colors):
         super().__init__(pos, width, width, width, colors)
 
