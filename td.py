@@ -75,12 +75,12 @@ class Vector2:
 
 #Camera class, controls the viewing point/angle of the 3D scene, as well as projection of 3D points into 2D ones.
 class Camera:
-    def __init__(self, pos: Vector3, rot: Vector3):
+    def __init__(self, pos: Vector3, rot: Vector3, aspect_ratio = 16/9):
         self.pos = pos  #Camera position in 3D Space
         self.rot = rot  #Camera rotation (euler angles (look them up)) in radians
         self.fov = PI/2   #Field of View of the camera
         self.near, self.far = 0.01, 1000 #Near and far clipping planes (any objects closer than near or farther than far will not be drawn)
-        self.aspect_ratio = 16/9    #Default window aspect ratio
+        self.aspect_ratio = aspect_ratio    #Default window aspect ratio
     
     def trasformationMatrix(self):  #Creates the transformation matrix that converts 3d points to 2d points
         fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
@@ -186,8 +186,8 @@ class Cube(Rect): #Cube object (ill rewrite this later probably)
         super().__init__(pos, width, width, width, colors)
 
 class FPSCamera(Camera):    #Special camera that allows for FPS style movement and control
-    def __init__(self, pos:Vector3, rot:Vector3, speed:float, rotSpeed:float):
-        super().__init__(pos, rot)
+    def __init__(self, pos:Vector3, rot:Vector3, speed:float, rotSpeed:float, aspect_ratio = 16/9):
+        super().__init__(pos, rot, aspect_ratio=aspect_ratio)
         self.speed = speed
         self.rotSpeed = rotSpeed
         self.binds = {      #Key bindings for controls
