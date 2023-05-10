@@ -145,14 +145,19 @@ class Object:   #object class made up of triangles
     def __init__(self, verts:list, triColors:list):
         if len(verts)%3 != 0:   #Make sure the vertices are a multiple of 3 (each tri has 3 vertices)
             raise ValueError('Vertices are not a multiple of 3, cannot make Tri faces!')
+            
         self.verts = verts 
         self.colors = triColors
         #Create tris out of vertices, and calculate the center point of the whole object shape
         self.tris = [Tri((self.verts[3*i], self.verts[3*i+1], self.verts[3*i+2]), self.colors[i]) for i in range(len(self.verts)//3)]
         self.centroid = sum([t.centroid for t in self.tris])/len(self.tris)
+        
         for tri in self.tris:   #Make sure the triangle normals point outward from the shape (potentially bugged?)
             if tri.normal.dot(tri.centroid - self.centroid)<=0:
                 tri.normal *= -1 
+                
+        pX, pY, pZ = [p.x for p in self.verts], [p.y for p in self.verts], [p.z for p in self.verts]
+        self.bBox = [min(pX), max(pX), min(pY), max(pY), min(pZ), max(pZ)]
 
 class Scene:    #Scene class that stores objects and can be rendered with the camera
     def __init__(self, objects=[]):
