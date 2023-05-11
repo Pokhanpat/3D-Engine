@@ -129,8 +129,13 @@ class Camera:
         
         return False
 
+def checkBboxCollision(A,B):
+    if A[0] <= B[1] and A[1] >= B[0]:
+        if A[2] <= B[3] and A[3] >= B[2]:
+            if A[4] <= B[5] and A[5] >= B[4]:
+                return True
+    return False
 
-    
 class Tri:  # Basic polygon face class, makes a triangle from 3 points
     def __init__(self, points: list, color: tuple):
         if len(points) != 3:    #Makes sure that exactly 3 points are provided
@@ -170,6 +175,12 @@ class Object:   #object class made up of triangles
         for tri in self.tris:   #Make sure the triangle normals point outward from the shape 
             if tri.normal.dot(tri.centroid - self.centroid)<=0:
                 tri.normal *= -1 
+
+    def bbox(self):
+        rX = [p.x for t in self.tris for p in t.points]
+        rY = [p.y for t in self.tris for p in t.points]
+        rZ = [p.z for t in self.tris for p in t.points]
+        return [min(rX), max(rX), min(rY), max(rY), min(rZ), max(rZ)]
 
     def move(self, moveVector:Vector3):
         for t in self.tris: 
@@ -237,7 +248,7 @@ class Cube(Rect): #Cube object (ill rewrite this later probably)
         super().__init__(pos, width, width, width, colors)
 
 class FPSCamera(Camera):    #Special camera that allows for FPS style movement and control
-    def __init__(self, pos:Vector3, rot:Vector3, speed:float, rotSpeed:float, aspect_ratio = 16/9):
+    def __init__(self, pos:Vector3, rot:Vector3, speed:float, rotSpeed:float, aspect_ratio = 16/9, collision = True):
         super().__init__(pos, rot, aspect_ratio=aspect_ratio)
         self.speed = speed
         self.rotSpeed = rotSpeed
@@ -251,19 +262,28 @@ class FPSCamera(Camera):    #Special camera that allows for FPS style movement a
             'rotLeft':pygame.K_LEFT,
             'rotRight':pygame.K_RIGHT
         }
-    
-    def update(self):   #checks input for movement
+        self.collision = collision
+        
+    def update(self, sc:Scene):   #checks input for movement
         self.fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
         self.rV = self.fV.cross(Vector3(0, 1, 0)).normalize() #Vector that points to the right from the camera
         self.uV = self.rV.cross(self.fV).normalize()   #Vector that points upward.
+
+        bBox = lambda pos: [pos.x - 1, pos.x + 1, pos.y - 1, pos.y + 1, pos.z - 1, pos.z + 1]
+        forwardCol = self.collision and not any([checkBboxCollision(bBox(self.pos + self.fV), o.bbox()) for o in sc.objects])
+        backCol = self.collision and not any([checkBboxCollision(bBox(self.pos - self.fV), o.bbox()) for o in sc.objects])
+        leftCol = self.collision and not any([checkBboxCollision(bBox(self.pos + self.rV), o.bbox()) for o in sc.objects])
+        rightCol = self.collision and not any([checkBboxCollision(bBox(self.pos - self.rV), o.bbox()) for o in sc.objects])
+
+      
         keys = pygame.key.get_pressed() #uses the forward and right vectors from camera.transformationMatrix() to
-        if keys[self.binds['forward']]: #move the camera relative to the direction its facing
-            self.pos += self.fV
-        if keys[self.binds['backward']]:
+        if keys[self.binds['forward']] and forwardCol: 
+            self.pos += self.fV#move the camera relative to the direction its facing
+        if keys[self.binds['backward']] and backCol:
             self.pos-= self.fV
-        if keys[self.binds['left']]:
+        if keys[self.binds['left']] and leftCol:
             self.pos += self.rV
-        if keys[self.binds['right']]:
+        if keys[self.binds['right']] and rightCol:
             self.pos -= self.rV
         if keys[self.binds['rotLeft']]:
             self.rot.y += self.rotSpeed
