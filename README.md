@@ -1,4 +1,5 @@
 # 3D-Engine
-Cool 3d engine test thing i made in pygame for a school project
-feel free to use the engine in your own programs (its really bad just warning you)
-requirements are td.py and _math.py (and pygame)
+Cool pygame-based 3d engine thing i made in pygame for a school project\
+feel free to use the engine in your own programs\
+to use, put the files td.py and \_math.py in the same directory as your program
+(pygame also required obv)
