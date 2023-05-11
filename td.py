@@ -233,7 +233,7 @@ class FPSCamera(Camera):    #Special camera that allows for FPS style movement a
             self.rot.y += self.rotSpeed
         if keys[self.binds['rotRight']]:
             self.rot.y -= self.rotSpeed
-        if keys[self.binds['rotUp']]:
+        if keys[self.binds['rotUp']] and (self.rot.x - self.rotSpeed) > -PI/2:
             self.rot.x -= self.rotSpeed
-        if keys[self.binds['rotDown']]:
+        if keys[self.binds['rotDown']] and (self.rot.x + self.rotSpeed) < PI/2:
             self.rot.x += self.rotSpeed
