@@ -3,7 +3,6 @@ from _math import *
 #_math is basic math functions
 
 #TO DO:
-#Add object movement and rotation
 #Make Potential child classes of object like cube and pyramid
 #Make a game lmao
 
