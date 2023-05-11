@@ -81,15 +81,15 @@ class Camera:
         self.fov = PI/2   #Field of View of the camera
         self.near, self.far = 0.01, 1000 #Near and far clipping planes (any objects closer than near or farther than far will not be drawn)
         self.aspect_ratio = aspect_ratio    #Default window aspect ratio
+        self.fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
+        self.rV = self.fV.cross(Vector3(0, 1, 0)).normalize() #Vector that points to the right from the camera
+        self.uV = self.rV.cross(self.fV).normalize()   #Vector that points upward.
     
     def trasformationMatrix(self):  #Creates the transformation matrix that converts 3d points to 2d points
-        fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
-        rV = fV.cross(Vector3(0, 1, 0)).normalize() #Vector that points to the right from the camera
-        uV = rV.cross(fV).normalize()   #Vector that points upward.
         viewMatrix = [  #Matrix that transforms a point to have its position and orientation relative to the camera
-            [rV.x, rV.y, rV.z, self.pos.dot(rV) * -1],
-            [uV.x, uV.y, uV.z, self.pos.dot(uV) * -1],
-            [fV.x, fV.y, fV.z, self.pos.dot(fV) * -1],
+            [self.rV.x, self.rV.y, self.rV.z, self.pos.dot(self.rV) * -1],
+            [self.uV.x, self.uV.y, self.uV.z, self.pos.dot(self.uV) * -1],
+            [self.fV.x, self.fV.y, self.fV.z, self.pos.dot(self.fV) * -1],
             [0, 0, 0, 1]]
         try:
             self.projectionMatrix   #Check to see if the projection matrix has already been calculated
@@ -104,6 +104,10 @@ class Camera:
             ]
         return matmul(self.projectionMatrix, viewMatrix)    #Multiply the 2 matrices together to get the final point.
 
+    def update(self):
+        self.fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
+        self.rV = self.fV.cross(Vector3(0, 1, 0)).normalize() #Vector that points to the right from the camera
+        self.uV = self.rV.cross(self.fV).normalize()   #Vector that points upward.
 
     def project(self, p: Vector3, sc:pygame.surface.Surface):  #Method that projects a 3D Point onto the Camera, and returns its 2D Output on the display surface
         hPoint = matmul(self.trasformationMatrix(), [[p.x],[p.y],[p.z],[1]])    #multiply the point by the transformation matrix
@@ -113,10 +117,18 @@ class Camera:
             return viewPoint    #Return projected point
         except:
             return ZeroDivisionError('Point projected at infinity!')    #error happens when point is projected infinitely far away
+        
+
 
     def tryCulling(self, t):    #Optimization that ignores certain faces that aren't visible when rendering
-        cToTri = t.points[0] - self.pos        
-        return (cToTri.dot(t.normal)) >= 0
+        cToTri = t.points[0] - self.pos    
+        if (cToTri.dot(t.normal)) >= 0: return True #Checks if face isnt facing the camera
+
+        for point in t.points:
+            if (point-self.pos).dot(self.fV.normalize()) <= 0:  #Checks if face is behind the camera
+                return True
+        
+        return False
 
 
     
@@ -156,9 +168,7 @@ class Object:   #object class made up of triangles
             if tri.normal.dot(tri.centroid - self.centroid)<=0:
                 tri.normal *= -1 
                 
-        pX, pY, pZ = [p.x for p in self.verts], [p.y for p in self.verts], [p.z for p in self.verts]
-        self.bBox = [min(pX), max(pX), min(pY), max(pY), min(pZ), max(pZ)]
-
+                
 class Scene:    #Scene class that stores objects and can be rendered with the camera
     def __init__(self, objects=[]):
         self.objects = objects 
@@ -207,17 +217,18 @@ class FPSCamera(Camera):    #Special camera that allows for FPS style movement a
         }
     
     def update(self):   #checks input for movement
-        forwardVector = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x)).normalize() * self.speed
-        rightVector = forwardVector.cross(Vector3(0, 1, 0)).normalize() * self.speed
+        self.fV = Vector3(cos(self.rot.y)*cos(self.rot.x), sin(self.rot.x), sin(self.rot.y) * cos(self.rot.x))   #Vector that points forward from the camera
+        self.rV = self.fV.cross(Vector3(0, 1, 0)).normalize() #Vector that points to the right from the camera
+        self.uV = self.rV.cross(self.fV).normalize()   #Vector that points upward.
         keys = pygame.key.get_pressed() #uses the forward and right vectors from camera.transformationMatrix() to
         if keys[self.binds['forward']]: #move the camera relative to the direction its facing
-            self.pos += forwardVector
+            self.pos += self.fV
         if keys[self.binds['backward']]:
-            self.pos-= forwardVector
+            self.pos-= self.fV
         if keys[self.binds['left']]:
-            self.pos += rightVector
+            self.pos += self.rV
         if keys[self.binds['right']]:
-            self.pos -= rightVector
+            self.pos -= self.rV
         if keys[self.binds['rotLeft']]:
             self.rot.y += self.rotSpeed
         if keys[self.binds['rotRight']]:
