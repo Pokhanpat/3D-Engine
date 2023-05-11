@@ -183,7 +183,27 @@ class Object:   #object class made up of triangles
                 tri.normal *= -1 
 
     def rotate(self, rotationVector:Vector3):
-      pass
+        rotationZ = [[cos(rotationVector.z), -sin(rotationVector.z), 0],
+                    [sin(rotationVector.z), cos(rotationVector.z), 0],
+                    [0, 0, 1]]
+        rotationY = [[cos(rotationVector.y), 0, sin(rotationVector.y)],
+                    [0, 1, 0],
+                    [-sin(rotationVector.y), 0, cos(rotationVector.y)]]
+        rotationX = [[1, 0, 0],
+                    [0, cos(rotationVector.x), -sin(rotationVector.x)],
+                    [0, sin(rotationVector.x), cos(rotationVector.x)]]
+
+        rotationMatrix = matmul(matmul(rotationZ, rotationY), rotationX)
+
+        for tri in self.tris:
+            relativePoints = [point - self.centroid for point in tri.points]
+            rotatedPoints = [matmul(rotationMatrix, [[point.x],[point.y],[point.z]]) for point in relativePoints]
+            tri.points = [Vector3(point[0][0], point[1][0], point[2][0]) + self.centroid for point in rotatedPoints]
+            tri.update()
+
+        for tri in self.tris:   #Make sure the triangle normals point outward from the shape
+            if tri.normal.dot(tri.centroid - self.centroid)<=0:
+                tri.normal *= -1 
                 
 class Scene:    #Scene class that stores objects and can be rendered with the camera
     def __init__(self, objects=[]):
