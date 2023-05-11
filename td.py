@@ -3,7 +3,7 @@ from _math import *
 #_math is basic math functions
 
 #TO DO:
-#Implement Frustum culling
+#Add object movement and rotation
 #Make Potential child classes of object like cube and pyramid
 #Make a game lmao
 
@@ -141,7 +141,11 @@ class Tri:  # Basic polygon face class, makes a triangle from 3 points
         self.normal = (points[1] - points[0]).cross(points[2] - points[0]).normalize()  #Calculates a normal vector for the triangle (useful for calculating facing angle and reflections/collisions later)
         self.color = color  #Color of the triangle
         self.centroid = sum(points)/3
-    
+
+    def update(self):
+      self.normal = (self.points[1] - self.points[0]).cross(self.points[2] - self.points[0]).normalize()
+      self.centroid = sum(self.points)/3
+  
     def draw(self, sc:pygame.surface.Surface, camera: Camera):  #Method that draws the triangle to the screen by projecting it onto a camera
         try:
             if not camera.tryCulling(self): #Checks to see if it can be ignored in rendering
@@ -164,10 +168,22 @@ class Object:   #object class made up of triangles
         self.tris = [Tri((self.verts[3*i], self.verts[3*i+1], self.verts[3*i+2]), self.colors[i]) for i in range(len(self.verts)//3)]
         self.centroid = sum([t.centroid for t in self.tris])/len(self.tris)
         
-        for tri in self.tris:   #Make sure the triangle normals point outward from the shape (potentially bugged?)
+        for tri in self.tris:   #Make sure the triangle normals point outward from the shape 
             if tri.normal.dot(tri.centroid - self.centroid)<=0:
                 tri.normal *= -1 
-                
+
+    def move(self, moveVector:Vector3):
+        for t in self.tris: 
+            t.points = [p + moveVector for p in t.points]
+            t.update()
+          
+        self.centroid = sum([t.centroid for t in self.tris])/len(self.tris)
+        for tri in self.tris:   #Make sure the triangle normals point outward from the shape
+            if tri.normal.dot(tri.centroid - self.centroid)<=0:
+                tri.normal *= -1 
+
+    def rotate(self, rotationVector:Vector3):
+      pass
                 
 class Scene:    #Scene class that stores objects and can be rendered with the camera
     def __init__(self, objects=[]):
