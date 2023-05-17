@@ -44,8 +44,8 @@ class Vector3:
     def dot(self, v):
         return self.x*v.x + (self.y*v.y) + (self.z*v.z)
     #Returns the distance between 2 vectors
-    def dist(self, v):
-        return sqrt((self.x - v.x)**2 + (self.y - v.y)**2 + (self.z - v.z)**2)
+    def distSquared(self, v):
+        return (self.x - v.x)**2 + (self.y - v.y)**2 + (self.z - v.z)**2
     
 #2D Vector Class, used less but still important.
 class Vector2:
@@ -124,7 +124,7 @@ class Camera:
         if (cToTri.dot(t.normal)) >= 0: return True #Checks if face isnt facing the camera
 
         for point in t.points:
-            if (point-self.pos).dot(self.fV.normalize()) <= 0:  #Checks if face is behind the camera
+            if (point-self.pos).dot(self.fV) <= 0:  #Checks if face is behind the camera
                 return True
         
         return False
@@ -222,7 +222,7 @@ class Scene:    #Scene class that stores objects and can be rendered with the ca
         self.tris = [t for o in self.objects for t in o.tris]
 
     def generateZBuffer(self, c:Camera):    #Object-level z buffer
-        distanceList = [(i, c.pos.dist(t.centroid)) for i, t in enumerate(self.tris)]
+        distanceList = [(i, c.pos.distSquared(t.centroid)) for i, t in enumerate(self.tris)]
         sortedList = sorted(distanceList, key=lambda x: x[1], reverse=True)
         return [self.tris[i[0]] for i in sortedList]
     
